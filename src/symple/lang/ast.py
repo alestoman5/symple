@@ -36,6 +36,12 @@ class Ditto(Node):
 
 
 @dataclass(eq=False)
+class Uneval(Node):
+    """'expr' -- delays evaluation, e.g. x := 'x' unassigns x."""
+    expr: Node
+
+
+@dataclass(eq=False)
 class Call(Node):
     func: Node
     args: list[Node]

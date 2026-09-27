@@ -473,6 +473,15 @@ class Parser:
             return A.SetLit(items, start=tok.start, end=self.prev_end)
         if tok.is_kw("proc"):
             return self.parse_proc()
+        if tok.is_op("'"):
+            self.advance()
+            if self.at_terminator():
+                raise ParseError("unclosed quote", tok.start, tok.end)
+            inner = self.parse_expr()
+            if not self.tok.is_op("'"):
+                raise ParseError("unclosed quote", tok.start, tok.end, "add a closing '")
+            self.advance()
+            return A.Uneval(inner, start=tok.start, end=self.prev_end)
 
         if kind is T.EOF:
             raise self.error("incomplete expression")
