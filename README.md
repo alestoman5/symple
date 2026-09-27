@@ -8,6 +8,16 @@ directly underneath, just like a classic computer-algebra worksheet.
 
 ![Symple worksheet](docs/screenshot.png)
 
+## Download (Windows)
+
+Get **`Symple-<version>-Setup.exe`** from the
+[latest release](https://github.com/alestoman5/symple/releases/latest), run it, and
+open Symple from the Start Menu or desktop. You don't need Python or admin rights.
+Double-clicking a `.syw` worksheet opens it in Symple.
+
+The installer isn't code-signed yet, so Windows SmartScreen may warn about it:
+choose **More info → Run anyway**.
+
 ## Features
 
 - **Worksheet interface**: editable input cells with the output rendered below each one.
@@ -30,7 +40,7 @@ directly underneath, just like a classic computer-algebra worksheet.
   allow-list of SymPy functions. It is never passed to Python's `eval`.
 - **Interruptible**: computations run in a separate process and can be stopped at any time.
 
-## Install & run
+## Run from source
 
 Requires Python 3.10 or newer.
 
@@ -45,6 +55,11 @@ symple examples/tour.syw    # open the example worksheet
 ```
 
 Run the tests with `pytest`.
+
+To build the Windows installer yourself: `pip install pyinstaller`, run
+`pyinstaller packaging/symple.spec` and `python packaging/postbuild.py`, then compile
+`packaging/symple.iss` with [Inno Setup 6](https://jrsoftware.org/isinfo.php).
+Pushing a tag like `v0.1.0` builds and publishes the installer automatically.
 
 ## A quick tour
 

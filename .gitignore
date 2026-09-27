@@ -24,3 +24,6 @@ Thumbs.db
 
 # Local worksheets
 *.syw.bak
+
+# Claude Code local state (agent worktrees)
+.claude/

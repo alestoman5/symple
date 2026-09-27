@@ -1,0 +1,97 @@
+name: windows-installer
+
+# Push a tag like v0.1.0 to build the installer and publish it as a GitHub Release.
+# "Run workflow" (manual) builds it as a downloadable artifact without releasing.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Version
+        id: version
+        run: |
+          $v = (Select-String -Path pyproject.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $tag = $env:GITHUB_REF_NAME.TrimStart('v')
+            if ($tag -ne $v) { throw "Tag v$tag does not match pyproject version $v" }
+          }
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install . pyinstaller
+
+      - name: Build app bundle
+        run: |
+          pyinstaller --noconfirm --log-level WARN --distpath dist --workpath build packaging/symple.spec
+          python packaging/postbuild.py
+
+      - name: Self-test bundle
+        run: |
+          $report = "$PWD\build\selftest-bundle.txt"
+          $p = Start-Process dist\Symple\Symple.exe -ArgumentList '--self-test', $report -PassThru -Wait
+          Get-Content $report
+          if ($p.ExitCode -ne 0) { throw "bundle self-test failed ($($p.ExitCode))" }
+
+      - name: Build installer
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+          }
+          & $iscc /Qp "/DAppVersion=${{ steps.version.outputs.version }}" packaging\symple.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+          Get-ChildItem dist\*.exe
+
+      - name: Test installer (silent install, self-test, uninstall)
+        run: |
+          $setup = (Get-ChildItem dist\Symple-*-Setup.exe).FullName
+          $dir = "$env:RUNNER_TEMP\SympleTest"
+          $p = Start-Process $setup -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/CURRENTUSER', '/NORESTART', "/DIR=$dir", '/TASKS=fileassoc' -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "install failed ($($p.ExitCode))" }
+          $report = "$env:RUNNER_TEMP\selftest-installed.txt"
+          $p = Start-Process "$dir\Symple.exe" -ArgumentList '--self-test', $report -PassThru -Wait
+          Get-Content $report
+          if ($p.ExitCode -ne 0) { throw "installed self-test failed" }
+          if (-not (Test-Path "$dir\licenses\LGPL-3.0.txt")) { throw "license texts missing" }
+          $p = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES' -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "uninstall failed" }
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: Symple-${{ steps.version.outputs.version }}-Setup
+          path: dist/Symple-*-Setup.exe
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $setup = (Get-ChildItem dist\Symple-*-Setup.exe).FullName
+          $notes = @"
+          **Download ``$(Split-Path $setup -Leaf)``, run it, and open Symple from the Start Menu or desktop.**
+
+          - No Python or other software needed; installs for your user account without admin rights.
+          - Adds Start Menu / optional desktop shortcuts and opens ``.syw`` worksheets on double-click.
+          - Uninstall from Windows Settings > Apps.
+
+          Windows may show a SmartScreen warning because the installer is not code-signed yet:
+          click **More info > Run anyway**.
+          "@
+          gh release create $env:GITHUB_REF_NAME $setup --title "Symple $env:GITHUB_REF_NAME" --notes $notes
