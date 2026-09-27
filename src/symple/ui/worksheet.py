@@ -130,8 +130,8 @@ class Worksheet(QScrollArea):
         if text:
             cell.set_source(text)
         if not self.cells:
-            cell.editor.setPlaceholderText("Type a command, e.g.  int(x^2, x);   Enter runs it, "
-                                           "Shift+Enter starts a new line, Ctrl+Space completes")
+            cell.editor.setPlaceholderText("Type a command, e.g. int(x^2, x);   Enter runs · "
+                                           "Shift+Enter new line · Ctrl+Space completes")
         if after is not None and after in self.cells:
             idx = self.cells.index(after) + 1
         elif before is not None and before in self.cells:

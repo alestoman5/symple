@@ -63,7 +63,8 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.diag_label)
         self.statusBar().addPermanentWidget(self.engine_label)
 
-        self.sheet.statusMessage.connect(lambda m: self.statusBar().showMessage(m, 6000))
+        self.statusBar().messageChanged.connect(lambda m: m or self.statusBar().setToolTip(""))
+        self.sheet.statusMessage.connect(lambda m: self.show_status(m, 6000))
         self.sheet.busyChanged.connect(self._on_busy)
         self.sheet.modifiedChanged.connect(lambda _: self._update_title())
         self.sheet.diagnosticsSummary.connect(self.diag_label.setText)
@@ -143,6 +144,14 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ handlers
 
+    def show_status(self, message: str, timeout: int = 0) -> None:
+        """Show a status message, elided to the space available; the full text goes in the tooltip."""
+        bar = self.statusBar()
+        room = bar.width() - 24 - sum(w.sizeHint().width() for w in (self.diag_label, self.engine_label))
+        shown = bar.fontMetrics().elidedText(message, Qt.TextElideMode.ElideRight, max(80, room))
+        bar.setToolTip(message if shown != message else "")
+        bar.showMessage(shown, timeout)
+
     def _on_busy(self, busy: bool) -> None:
         self.act_stop.setEnabled(busy)
         self.engine_label.setText("Evaluating…" if busy else "Ready")
@@ -205,7 +214,7 @@ class MainWindow(QMainWindow):
         self.path = Path(path)
         self.settings.setValue("last_dir", str(self.path.parent))
         self._update_title()
-        self.statusBar().showMessage("Worksheet opened. Use 'Run all' to recompute it.", 8000)
+        self.show_status("Worksheet opened. Use 'Run all' to recompute it.", 8000)
 
     def save_file(self) -> bool:
         if self.path is None:
@@ -216,7 +225,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Symple", f"Could not save:\n{e}")
             return False
         self.sheet.set_modified(False)
-        self.statusBar().showMessage(f"Saved {self.path.name}", 4000)
+        self.show_status(f"Saved {self.path.name}", 4000)
         return True
 
     def save_file_as(self) -> bool:

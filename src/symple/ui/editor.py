@@ -2,7 +2,7 @@
 bracket matching and autocompletion."""
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QModelIndex, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QModelIndex, QRect, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import QPlainTextEdit, QSizePolicy, QTextEdit, QToolTip
 
@@ -46,22 +46,72 @@ class InputEditor(QPlainTextEdit):
         self._lint_timer.timeout.connect(self.run_diagnostics)
         self.textChanged.connect(self._on_text_changed)
         self.cursorPositionChanged.connect(self._on_cursor_moved)
-        self.document().documentLayout().documentSizeChanged.connect(lambda *_: self._fit_height())
+        # Resizing from inside a resize event would leave the viewport at its old size
+        # (QAbstractScrollArea ignores nested resizes), so such refits are deferred.
+        self._resizing = False
+        self._fit_timer = QTimer(self, singleShot=True, interval=0)
+        self._fit_timer.timeout.connect(self._fit_height)
+        self.document().documentLayout().documentSizeChanged.connect(lambda *_: self._request_fit())
         self._fit_height()
 
     # ---------------------------------------------------------------- sizing
 
     def _fit_height(self) -> None:
-        lines = max(1, int(self.document().size().height()))
-        h = lines * self.fontMetrics().lineSpacing() + 2 * self.document().documentMargin() + 6
-        self.setFixedHeight(int(h))
+        """Make the editor exactly tall enough for its (wrapped) text, or for the
+        wrapped placeholder while the editor is empty."""
+        doc = self.document()
+        margin = doc.documentMargin()
+        layout = doc.documentLayout()
+        content = 0.0
+        block = doc.begin()
+        while block.isValid():
+            content += layout.blockBoundingRect(block).height()  # lays the block out if needed
+            block = block.next()
+        content = max(content, self.fontMetrics().lineSpacing())
+        if doc.isEmpty() and self.placeholderText():
+            content = max(content, self._placeholder_height())
+        h = int(content + 2 * margin + 2 * self.frameWidth() + 6)
+        if (self.minimumHeight(), self.maximumHeight()) != (h, h):
+            self.setFixedHeight(h)
+
+    def _request_fit(self) -> None:
+        if self._resizing:
+            self._fit_timer.start()
+        else:
+            self._fit_height()
+
+    def _placeholder_height(self) -> int:
+        # QPlainTextEdit draws the placeholder word-wrapped in the viewport, indented by the margin.
+        margin = int(self.document().documentMargin())
+        width = max(1, self.viewport().width() - margin)
+        rect = self.fontMetrics().boundingRect(QRect(0, 0, width, 100000),
+                                               int(Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap),
+                                               self.placeholderText())
+        return rect.height()
+
+    def setPlaceholderText(self, text: str) -> None:
+        super().setPlaceholderText(text)
+        self._fit_height()
 
     def sizeHint(self) -> QSize:
         return QSize(400, self.height())
 
     def resizeEvent(self, e) -> None:
-        super().resizeEvent(e)
+        self._resizing = True
+        try:
+            super().resizeEvent(e)
+        finally:
+            self._resizing = False
+        self._fit_timer.start()
+
+    def showEvent(self, e) -> None:
+        super().showEvent(e)
         self._fit_height()
+
+    def changeEvent(self, e) -> None:
+        super().changeEvent(e)
+        if e.type() == QEvent.Type.FontChange:
+            self._fit_height()
 
     def set_font_size(self, size: float) -> None:
         self.setFont(theme.mono_font(size))
@@ -152,7 +202,11 @@ class InputEditor(QPlainTextEdit):
         popup = self.completer.popup()
         popup.setCurrentIndex(self.completer.completionModel().index(0, 0))
         rect = self.cursorRect()
-        rect.setWidth(max(360, popup.sizeHintForColumn(0) + popup.verticalScrollBar().sizeHint().width() + 16))
+        # Wide enough for the longest signature, but never wider than the window; entries that
+        # still do not fit are elided and shown in full in their tooltip and the status bar.
+        want = popup.sizeHintForColumn(0) + popup.verticalScrollBar().sizeHint().width() + 16
+        room = self.window().width() - self.mapTo(self.window(), rect.topLeft()).x() - 8
+        rect.setWidth(max(360, min(want, room)))
         self.completer.complete(rect)
         try:
             popup.selectionModel().currentChanged.disconnect()
