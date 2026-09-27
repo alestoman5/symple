@@ -67,6 +67,7 @@ _ENTRIES = [
     _f("lcm", "lcm(a, b)", "Least common multiple of integers or polynomials.", "Algebra", 2, 2),
     _f("rem", "rem(a, b, x)", "Remainder of polynomial division of a by b.", "Algebra", 3, 3),
     _f("quo", "quo(a, b, x)", "Quotient of polynomial division of a by b.", "Algebra", 3, 3),
+    _f("unapply", "unapply(expr, x, ...)", "Turns an expression into a function of the given variables.", "Algebra", 2, None),
     _f("piecewise", "piecewise(cond1, val1, ..., [otherwise])", "A function defined by cases.", "Algebra", 1, None),
     # --- Number theory
     _f("ifactor", "ifactor(n)", "Prime factorisation of the integer n.", "Number theory", 1, 1),
@@ -143,7 +144,7 @@ _ENTRIES = [
     _f("IdentityMatrix", "IdentityMatrix(n)", "n x n identity matrix.", "Linear algebra"),
     _f("DotProduct", "DotProduct(u, v)", "Dot product of two vectors.", "Linear algebra", 2, 2),
     _f("CrossProduct", "CrossProduct(u, v)", "Cross product of two 3-vectors.", "Linear algebra", 2, 2),
-    _f("Norm", "Norm(v [, p])", "Norm of a vector or matrix (default 2-norm... Frobenius for matrices).", "Linear algebra", 1, 2),
+    _f("Norm", "Norm(v [, p])", "Norm of a vector or matrix; p can be 1, 2, infinity (the default) or Frobenius.", "Linear algebra", 1, 2),
     # --- Plotting
     _f("plot", "plot(f, x = a..b)  |  plot([f, g], x = a..b)", "2-D plot of one or more expressions.", "Plotting", 1, None),
     _f("plot3d", "plot3d(f, x = a..b, y = c..d)", "3-D surface plot.", "Plotting", 3, None),
