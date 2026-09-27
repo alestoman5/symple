@@ -41,6 +41,12 @@ _ENTRIES = [
     _f("product", "product(expr, k = a..b)", "Symbolic product of expr for k from a to b.", "Calculus", 2, 2),
     _f("add", "add(expr, k = a..b)", "Adds the terms expr for integer k from a to b (explicit loop).", "Calculus", 2, 2),
     _f("mul", "mul(expr, k = a..b)", "Multiplies the terms expr for integer k from a to b (explicit loop).", "Calculus", 2, 2),
+    _f("Int", "Int(expr, x = a..b)", "Inert integral: displayed but not computed; use value or evalf.", "Calculus", 2, 2),
+    _f("Diff", "Diff(expr, x)", "Inert derivative: displayed but not computed; use value.", "Calculus", 2, None),
+    _f("Sum", "Sum(expr, k = a..b)", "Inert sum: displayed but not computed; use value or evalf.", "Calculus", 2, 2),
+    _f("Product", "Product(expr, k = a..b)", "Inert product: displayed but not computed; use value.", "Calculus", 2, 2),
+    _f("Limit", "Limit(expr, x = a [, left|right])", "Inert limit: displayed but not computed; use value.", "Calculus", 2, 3),
+    _f("value", "value(expr)", "Computes the inert operations (Int, Diff, Sum, ...) inside expr.", "Calculus", 1, 1),
     _f("D", "D(f)", "Derivative operator applied to a function f.", "Calculus", 1, 1),
     _f("dsolve", "dsolve(ode [, y(x)])", "Solves an ordinary differential equation (or a set with initial conditions).", "Calculus", 1, 2),
     # --- Algebra & simplification

@@ -102,6 +102,14 @@ def test_dsolve(ev):
     assert out.replace(" ", "") == "y(x)=sin(x)"
 
 
+def test_inert_forms(ev):
+    assert last(ev, "Int(x^2, x = 0..1);") == "int(x^2, x = 0..1)"
+    assert last(ev, "value(%);") == "1/3"
+    assert last(ev, "evalf(Int(exp(-x^2), x = 0..1));") == "0.7468241328"
+    assert last(ev, "Limit(sin(x)/x, x = 0);") == "Limit(sin(x)/x, x = 0)"
+    assert last(ev, "Sum(1/k^2, k = 1..infinity) = value(Sum(1/k^2, k = 1..infinity));")         == "Sum(k^(-2), k = 1..infinity) = Pi^2/6"
+
+
 def test_D_operator(ev):
     assert last(ev, "f := x -> x^3: D(f)(2);") == "12"
     assert last(ev, "D(sin);") == "x -> cos(x)"

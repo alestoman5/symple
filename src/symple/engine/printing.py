@@ -122,6 +122,20 @@ class _Text(StrPrinter):
                    f"{self._print(lims[0])}..{self._print(lims[1])})"
         return f"int({self._print(expr.function)}, {self._print(var)})"
 
+    def _print_Sum(self, expr, name="Sum"):
+        (var, lo, hi), = expr.limits
+        return f"{name}({self._print(expr.function)}, {self._print(var)} = "                f"{self._print(lo)}..{self._print(hi)})"
+
+    def _print_Product(self, expr):
+        return self._print_Sum(expr, "Product")
+
+    def _print_Limit(self, expr):
+        e, z, z0, direction = expr.args
+        side = {"+": ", right", "-": ", left"}.get(str(direction), "")
+        if z0.is_infinite:
+            side = ""
+        return f"Limit({self._print(e)}, {self._print(z)} = {self._print(z0)}{side})"
+
     def _print_MatrixBase(self, expr):
         rows = ", ".join("[" + ", ".join(self._print(x) for x in expr.row(i)) + "]"
                          for i in range(expr.rows))

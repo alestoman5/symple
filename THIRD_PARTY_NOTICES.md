@@ -4,13 +4,22 @@ Symple is distributed under the MIT License (see `LICENSE`). It does not bundle
 third-party source code; the following packages are installed as ordinary,
 unmodified runtime dependencies from PyPI and remain under their own licenses.
 
-| Package    | License                        | Project page                          |
-|------------|--------------------------------|---------------------------------------|
-| SymPy      | BSD 3-Clause                   | https://www.sympy.org                 |
-| mpmath     | BSD 3-Clause (SymPy dependency)| https://mpmath.org                    |
-| PySide6    | LGPL v3 (Qt for Python)        | https://doc.qt.io/qtforpython/        |
-| Qt 6       | LGPL v3 (shipped with PySide6) | https://www.qt.io                     |
-| Matplotlib | Matplotlib License (PSF-based, BSD-compatible) | https://matplotlib.org |
+| Package             | License                                   | Project page                    |
+|---------------------|-------------------------------------------|---------------------------------|
+| SymPy               | BSD 3-Clause                              | https://www.sympy.org           |
+| mpmath              | BSD 3-Clause (SymPy dependency)           | https://mpmath.org              |
+| PySide6-Essentials  | LGPL v3 (used under LGPL; also offered as GPL v2/v3) | https://doc.qt.io/qtforpython/ |
+| shiboken6 / Qt 6    | LGPL v3 (shipped with PySide6)            | https://www.qt.io               |
+| Matplotlib          | Matplotlib License (PSF-based, BSD-compatible) | https://matplotlib.org     |
+| NumPy               | BSD 3-Clause (Matplotlib dependency)      | https://numpy.org               |
+| Pillow, fontTools, kiwisolver, cycler, contourpy, pyparsing, python-dateutil, packaging, six | MIT / BSD / HPND-style permissive licenses (Matplotlib dependencies) | https://pypi.org |
+
+Mathematical output is typeset with Matplotlib's built-in "mathtext" engine
+using the Computer Modern fonts that ship with Matplotlib (distributed under
+their own permissive license as part of Matplotlib). Symple does not include
+copies of these fonts.
+
+Development-only tools (not needed to run Symple): pytest (MIT).
 
 ## Notes on LGPL (PySide6 / Qt)
 

@@ -254,6 +254,49 @@ def _product(ev, f, v):
     return sp.product(basic(f, "product"), (x, a, b))
 
 
+@builtin("Int")
+def _Int(ev, f, v):
+    f = basic(f, "Int")
+    if eq_parts(v):
+        x, a, b = var_range(v, "Int")
+        return sp.Integral(f, (x, a, b))
+    return sp.Integral(f, symbol(v, "Int"))
+
+
+@builtin("Diff")
+def _Diff(ev, f, *vars_):
+    if not vars_:
+        raise EvalError("no variable given", "Diff")
+    return sp.Derivative(basic(f, "Diff"), *(symbol(v, "Diff") for v in vars_))
+
+
+@builtin("Sum")
+def _Sum(ev, f, v):
+    x, a, b = var_range(v, "Sum")
+    return sp.Sum(basic(f, "Sum"), (x, a, b))
+
+
+@builtin("Product")
+def _Product(ev, f, v):
+    x, a, b = var_range(v, "Product")
+    return sp.Product(basic(f, "Product"), (x, a, b))
+
+
+@builtin("Limit")
+def _Limit(ev, f, point, direction=None):
+    parts = eq_parts(point)
+    if not parts:
+        raise EvalError("expected x = a as the second argument", "Limit")
+    d = {"left": "-", "right": "+"}.get(str(direction), "+-") if direction is not None else "+-"
+    a = basic(parts[1], "Limit")
+    return sp.Limit(basic(f, "Limit"), symbol(parts[0], "Limit"), a, "+" if a.is_infinite else d)
+
+
+@builtin("value")
+def _value(ev, e):
+    return map_over(lambda x: basic(x, "value").doit(), e)
+
+
 @builtin("D")
 def _D(ev, f):
     x = sp.Symbol("x")
