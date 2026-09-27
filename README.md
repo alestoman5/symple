@@ -26,6 +26,7 @@ directly underneath, just like a classic computer-algebra worksheet.
 - **Autocompletion** of built-ins, keywords and your own variables, with signatures
   (triggered automatically or with **Ctrl+Space**).
 - **Inline plots** with `plot` and `plot3d`.
+- **Export to PDF** (**File → Export as PDF…**, Ctrl+P): typeset input, results and plots, paginated for printing or sharing.
 - **Safe evaluation**: input is parsed by Symple's own parser and mapped onto an
   allow-list of SymPy functions. It is never passed to Python's `eval`.
 - **Interruptible**: computations run in a separate process and can be stopped at any time.

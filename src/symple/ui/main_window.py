@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QLabel, Q
 from .. import __version__
 from ..catalog import CATALOG
 from . import theme
+from .pdf_export import export_pdf
 from .worksheet import Worksheet
 
 FILE_FILTER = "Symple worksheets (*.syw);;All files (*)"
@@ -88,6 +89,9 @@ class MainWindow(QMainWindow):
         self.act_open = self._action("Open…", self.open_file, QKeySequence.StandardKey.Open, "Open a worksheet")
         self.act_save = self._action("Save", self.save_file, QKeySequence.StandardKey.Save, "Save the worksheet")
         self.act_save_as = self._action("Save As…", self.save_file_as, "Ctrl+Shift+S")
+        self.act_export_pdf = self._action("Export as PDF…", self.export_pdf, QKeySequence.StandardKey.Print,
+                                           "Export the worksheet as a PDF document")
+        self.act_export_pdf.setIconText("Export PDF")
         self.act_quit = self._action("Quit", self.close, QKeySequence.StandardKey.Quit)
         self.act_run = self._action("Run", lambda: self.sheet.execute(), None, "Run the current cell (Enter)")
         self.act_run_all = self._action("Run all", self.sheet.execute_all, "Ctrl+Shift+Return",
@@ -113,6 +117,8 @@ class MainWindow(QMainWindow):
         for a in (self.act_new, self.act_open, self.act_save, self.act_save_as):
             m.addAction(a)
         m.addSeparator()
+        m.addAction(self.act_export_pdf)
+        m.addSeparator()
         m.addAction(self.act_quit)
         m = mb.addMenu("&Edit")
         for a in (self.act_insert_above, self.act_insert_below, self.act_delete):
@@ -133,7 +139,7 @@ class MainWindow(QMainWindow):
         tb = self.addToolBar("Main")
         tb.setMovable(False)
         tb.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        for a in (self.act_new, self.act_open, self.act_save):
+        for a in (self.act_new, self.act_open, self.act_save, self.act_export_pdf):
             tb.addAction(a)
         tb.addSeparator()
         for a in (self.act_run, self.act_run_all, self.act_stop, self.act_restart):
@@ -231,6 +237,24 @@ class MainWindow(QMainWindow):
         ok = self.save_file()
         self._update_title()
         return ok
+
+    def export_pdf(self, path: str | None = None) -> bool:
+        name = self.path.stem if self.path else "worksheet"
+        if not path:
+            start = Path(self.settings.value("last_dir", str(Path.home()))) / f"{name}.pdf"
+            path, _ = QFileDialog.getSaveFileName(self, "Export as PDF", str(start), "PDF files (*.pdf)")
+            if not path:
+                return False
+        if not path.lower().endswith(".pdf"):
+            path += ".pdf"
+        try:
+            pages = export_pdf(self.sheet, path, title=self.path.name if self.path else "Untitled")
+        except Exception as e:
+            QMessageBox.warning(self, "Symple", f"Could not export {path}:\n{e}")
+            return False
+        self.settings.setValue("last_dir", str(Path(path).parent))
+        self.statusBar().showMessage(f"Exported {Path(path).name} ({pages} page{'s' if pages != 1 else ''})", 6000)
+        return True
 
     def closeEvent(self, e) -> None:
         if self._confirm_discard():
