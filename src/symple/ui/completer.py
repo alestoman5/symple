@@ -27,6 +27,7 @@ class Completer(QCompleter):
         self.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.setMaxVisibleItems(10)
         self.popup().setObjectName("completer")
+        self.popup().setTextElideMode(Qt.TextElideMode.ElideRight)
         self._user_names: list[str] = []
         self._rebuild()
 
@@ -51,7 +52,7 @@ class Completer(QCompleter):
             item = QStandardItem(label)
             item.setData(name, NAME_ROLE)
             item.setData(kind, KIND_ROLE)
-            item.setToolTip(doc)
+            item.setToolTip(f"{label}\n{doc}" if kind == "function" else doc)
             item.setEditable(False)
             self._model.appendRow(item)
 

@@ -62,6 +62,14 @@ QLabel#prompt {{ color: {PROMPT}; font-weight: bold; }}
 QLabel#error {{ color: {ERROR}; }}
 QLabel#warning {{ color: {WARNING}; }}
 QLabel#textout {{ color: {OUTPUT_TEXT}; }}
+QScrollArea#output {{ background: transparent; }}
+QScrollArea#output QScrollBar:horizontal {{ height: 8px; background: transparent; margin: 0; }}
+QScrollArea#output QScrollBar::handle:horizontal {{ background: #d6d6d2; border-radius: 4px; min-width: 32px; }}
+QScrollArea#output QScrollBar::handle:horizontal:hover {{ background: #bdbdb8; }}
+QScrollArea#output QScrollBar::add-line:horizontal, QScrollArea#output QScrollBar::sub-line:horizontal {{
+    width: 0; }}
+QScrollArea#output QScrollBar::add-page:horizontal, QScrollArea#output QScrollBar::sub-page:horizontal {{
+    background: none; }}
 QFrame#cell[current="true"] {{ background: #f7f9fc; border-radius: 4px; }}
 QListView#completer {{ border: 1px solid #d0d0d0; background: white; selection-background-color: #dce8f7;
     selection-color: black; padding: 2px; }}
