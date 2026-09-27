@@ -36,12 +36,10 @@ class Output:
 
 class _Latex(LatexPrinter):
     def __init__(self, settings=None):
-        s = {"ln_notation": True, "inv_trig_style": "full", "mul_symbol": None}
+        s = {"ln_notation": True, "inv_trig_style": "full", "mul_symbol": None,
+             "imaginary_unit": r"\mathrm{I}"}
         s.update(settings or {})
         super().__init__(s)
-
-    def _print_ImaginaryUnit(self, expr):
-        return r"\mathrm{I}"
 
     def _print_BooleanTrue(self, expr):
         return r"\mathrm{true}"
@@ -188,6 +186,8 @@ def to_latex(v) -> str:
 
 
 def to_pretty(v) -> str:
+    if isinstance(v, ExprSeq) and any(needs_pretty(x) for x in v):
+        return _hjoin([to_pretty(x) for x in v], ", ")
     if isinstance(v, (ExprSeq, MList, MSet, MString, MRange, Equation, ArrowFunction, Procedure, Builtin)):
         return to_text(v)
     try:
@@ -207,6 +207,40 @@ def needs_pretty(v) -> bool:
     return False
 
 
+def _parts(v):
+    """Split a value into typesetting parts so the UI can draw matrices itself.
+
+    Returns None if the value has a matrix nested somewhere it can't lay out.
+    """
+    if isinstance(v, sp.MatrixBase):
+        return [{"matrix": [[to_latex(v[i, j]) for j in range(v.cols)] for i in range(v.rows)]}]
+    if isinstance(v, sp.Piecewise):
+        rows = []
+        for expr, cond in v.args:
+            label = r"\mathrm{otherwise}" if cond is sp.true else r"\mathrm{if}\ " + to_latex(cond)
+            rows.append([to_latex(expr), label])
+        return [{"cases": rows}]
+    if isinstance(v, sp.Equality) and (isinstance(v.rhs, sp.Piecewise) or isinstance(v.rhs, sp.MatrixBase)):
+        lhs = _parts(v.lhs)
+        rhs = _parts(v.rhs)
+        if lhs is None or rhs is None:
+            return None
+        return lhs + [{"latex": "="}] + rhs
+    if isinstance(v, ExprSeq):
+        out = []
+        for k, item in enumerate(v):
+            sub = _parts(item)
+            if sub is None:
+                return None
+            if k:
+                out.append({"latex": ",", "sep": True})
+            out.extend(sub)
+        return out
+    if needs_pretty(v):
+        return None
+    return [{"latex": to_latex(v)}]
+
+
 def make_output(value, label: str | None = None) -> Output:
     if isinstance(value, PlotResult):
         return Output("plot", text=value.title or "plot", png=value.png)
@@ -223,13 +257,35 @@ def make_output(value, label: str | None = None) -> Output:
     except Exception:
         latex = ""
     pretty = to_pretty(display)
+    meta = {"prefer_pretty": needs_pretty(display)}
+    if meta["prefer_pretty"]:
+        parts = _parts(display)
+        if parts is not None:
+            meta["parts"] = parts
     if label:
         label_tex = _LATEX.doprint(sp.Symbol(label))
         text = f"{label} := {text}"
         latex = f"{label_tex} := {latex}" if latex else ""
         pretty = _prefix_pretty(f"{label} := ", pretty)
-    return Output("math", text=text, latex=latex, pretty=pretty,
-                  label=label or "", meta={"prefer_pretty": needs_pretty(display)})
+        if "parts" in meta:
+            meta["parts"] = [{"latex": f"{label_tex} :="}] + meta["parts"]
+    return Output("math", text=text, latex=latex, pretty=pretty, label=label or "", meta=meta)
+
+
+def _hjoin(blocks: list[str], sep: str) -> str:
+    """Place multi-line text blocks side by side, vertically centred."""
+    split = [b.split("\n") for b in blocks]
+    height = max(len(b) for b in split)
+    cols = []
+    for k, lines in enumerate(split):
+        width = max(len(line) for line in lines)
+        top = (height - len(lines)) // 2
+        padded = [" " * width] * top + [line.ljust(width) for line in lines]
+        padded += [" " * width] * (height - len(padded))
+        if k:
+            cols.append([(sep if i == height // 2 else " " * len(sep)) for i in range(height)])
+        cols.append(padded)
+    return "\n".join("".join(col[i] for col in cols).rstrip() for i in range(height))
 
 
 def _prefix_pretty(prefix: str, block: str) -> str:

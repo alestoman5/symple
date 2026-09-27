@@ -12,6 +12,7 @@ import sympy as sp
 
 from ..catalog import PROTECTED
 from ..lang import ast as A
+from ..lang.diagnostics import line_col
 from ..lang.parser import parse
 from .builtins import BUILTINS, basic, items
 from .printing import Output, make_output
@@ -78,7 +79,11 @@ class Evaluator:
         if not result.ok:
             for d in result.diagnostics:
                 if d.severity == "error":
-                    self.outputs.append(Output("error", text=f"Error, {d.describe(src)}"))
+                    line, col = line_col(src, d.start)
+                    hint = f"; {d.hint}" if d.hint else ""
+                    multiline = "\n" in src.strip()
+                    where = f" (line {line}, column {col})" if multiline else f" (column {col})"
+                    self.outputs.append(Output("error", text=f"Error, {d.message}{hint}{where}"))
             return self.outputs
         for stmt in result.statements:
             try:
